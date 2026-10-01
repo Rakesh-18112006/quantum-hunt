@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 export async function GET() {
@@ -9,8 +9,7 @@ export async function GET() {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  const client = await clientPromise;
-  const db = client.db();
+  const db = await getDb();
 
   const participant = await db.collection('Participant').findOne(
     { _id: new ObjectId(session.participantId as string) },

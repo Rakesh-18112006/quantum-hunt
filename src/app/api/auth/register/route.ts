@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import { setSession } from '@/lib/auth';
 
@@ -8,8 +8,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name } = body; // Name is optional
 
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
 
     // Generate unique public ID for hunt
     const publicId = `QH-${Math.floor(100000 + Math.random() * 900000)}`;

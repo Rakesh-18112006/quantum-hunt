@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import crypto from 'crypto';
 
 export async function POST() {
   try {
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
 
     const currentCount = await db.collection('QRChallenge').countDocuments();
     const targetCount = 100;
@@ -37,8 +36,7 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
 
     const qrsAggr = await db.collection('QRChallenge').aggregate([
       {

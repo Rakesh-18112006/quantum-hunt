@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import { getSession } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
@@ -29,8 +29,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Answer is required' }, { status: 400 });
     }
 
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
     const participantId = new ObjectId(session.participantId as string);
 
     // Get challenge

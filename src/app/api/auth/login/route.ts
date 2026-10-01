@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import { setSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -11,8 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Public ID is required' }, { status: 400 });
     }
 
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
 
     const participant = await db.collection('Participant').findOne({ publicId });
     if (!participant) {

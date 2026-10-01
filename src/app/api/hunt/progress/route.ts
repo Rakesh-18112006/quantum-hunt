@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import { getSession } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
@@ -10,8 +10,7 @@ export async function GET() {
   }
 
   try {
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
     const participantId = new ObjectId(session.participantId as string);
 
     // Get all words

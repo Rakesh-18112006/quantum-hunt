@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 import { getSession } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
@@ -15,8 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
     }
 
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
 
     // Find the challenge by QR token
     const challenge = await db.collection('QRChallenge').findOne({ publicToken: token, active: true });

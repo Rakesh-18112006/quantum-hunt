@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise, { getDb } from '@/lib/mongodb';
 
 // Simple middleware can check admin session, here we just return the stats
 export async function GET() {
   try {
-    const client = await clientPromise;
-    const db = client.db();
+    const db = await getDb();
 
     const participants = await db.collection('Participant').countDocuments();
     const correctAnswers = await db.collection('HuntEvent').countDocuments({ eventType: 'ANSWER_CORRECT' });
