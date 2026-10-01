@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Upload, X, Aperture } from 'lucide-react';
+import type jsQRType from 'jsqr';
 import css from '@/app/(hunt)/treasure/TreasureHunt.module.css';
 
 type ScanState =
@@ -21,7 +22,7 @@ export default function QuantumScanner({ onScanSuccess, onClose }: QuantumScanne
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef    = useRef<number>(0);
-  const jsQRRef   = useRef<((data: Uint8ClampedArray, w: number, h: number) => { data: string } | null) | null>(null);
+  const jsQRRef   = useRef<typeof jsQRType | null>(null);
 
   const [scanState, setScanState] = useState<ScanState>('idle');
   const [detectedCode, setDetectedCode] = useState<string | null>(null);
@@ -57,28 +58,58 @@ export default function QuantumScanner({ onScanSuccess, onClose }: QuantumScanne
   }, [onScanSuccess, stopCamera]);
 
   // ── Camera scan loop ────────────────────────────────────────────────────
+  // Two changes from the original loop, both aimed at the same problem: it
+  // was decoding a full camera frame (often 1280x720+, 2 passes each -
+  // jsQR tries the image both normal and colour-inverted by default) on
+  // *every* animation frame, which is what made scanning feel sluggish,
+  // especially on mid-range phones.
+  //   1. The frame is downscaled to a fixed max dimension before decoding.
+  //      jsQR doesn't need full camera resolution to find a QR code - it
+  //      needs to resolve the code's own modules, which are far coarser
+  //      than the sensor - so this cuts the pixel count (and so decode
+  //      time) by an order of magnitude with no loss of reliability.
+  //   2. `inversionAttempts: 'dontInvert'` skips the second, inverted-colour
+  //      decode pass. Every code this hunt prints is dark ink on a light
+  //      background, so that second pass was pure overhead, every frame.
+  const SCAN_MAX_DIM = 480;
+  const lastScanRef = useRef(0);
+  const SCAN_INTERVAL_MS = 120; // ~8 decode attempts/sec is plenty for a held-up code
+
   const startScanLoop = useCallback(async () => {
     // Lazy-load jsQR once
     if (!jsQRRef.current) {
       const mod = await import('jsqr');
-      jsQRRef.current = mod.default as (data: Uint8ClampedArray, w: number, h: number) => { data: string } | null;
+      jsQRRef.current = mod.default;
     }
     const jsQR = jsQRRef.current;
 
-    const scan = () => {
+    const scan = (now: number) => {
       const video  = videoRef.current;
       const canvas = canvasRef.current;
       if (!video || !canvas || video.readyState < 2) {
         rafRef.current = requestAnimationFrame(scan);
         return;
       }
-      canvas.width  = video.videoWidth  || 640;
-      canvas.height = video.videoHeight || 480;
+
+      // Throttle actual decode attempts; the video element itself keeps
+      // rendering every frame regardless, so the preview stays smooth.
+      if (now - lastScanRef.current < SCAN_INTERVAL_MS) {
+        rafRef.current = requestAnimationFrame(scan);
+        return;
+      }
+      lastScanRef.current = now;
+
+      const vw = video.videoWidth || 640;
+      const vh = video.videoHeight || 480;
+      const scale = Math.min(1, SCAN_MAX_DIM / Math.max(vw, vh));
+      canvas.width  = Math.round(vw * scale);
+      canvas.height = Math.round(vh * scale);
+
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const result  = jsQR(imgData.data, imgData.width, imgData.height);
+      const result  = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
       if (result) {
         handleQRData(result.data);
         return; // stop loop
@@ -127,7 +158,7 @@ export default function QuantumScanner({ onScanSuccess, onClose }: QuantumScanne
     // Lazy-load jsQR
     if (!jsQRRef.current) {
       const mod = await import('jsqr');
-      jsQRRef.current = mod.default as (data: Uint8ClampedArray, w: number, h: number) => { data: string } | null;
+      jsQRRef.current = mod.default;
     }
     const jsQR = jsQRRef.current;
 

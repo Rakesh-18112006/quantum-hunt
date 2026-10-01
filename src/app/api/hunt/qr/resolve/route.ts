@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise, { getDb } from '@/lib/mongodb';
+import { getDb } from '@/lib/mongodb';
 import { getSession } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
@@ -21,8 +21,8 @@ export async function POST(request: Request) {
 
     const session = await getSession();
     if (!session) {
-      // Log anonymous scan
-      await db.collection('HuntEvent').insertOne({
+      // Analytics only - respond immediately rather than waiting on it.
+      db.collection('HuntEvent').insertOne({
         participantId: null,
         publicId: null,
         eventType: 'QR_SCANNED_ANONYMOUS',
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         metadata: JSON.stringify({ token }),
         createdAt: new Date(),
         environment: process.env.NODE_ENV
-      });
+      }).catch((err) => console.error('Failed to log QR_SCANNED_ANONYMOUS:', err));
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -48,14 +48,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Log the event
-    await db.collection('HuntEvent').insertOne({
+    // Analytics only - never blocks the response.
+    db.collection('HuntEvent').insertOne({
       participantId: new ObjectId(session.participantId as string),
       eventType: 'QR_SCANNED',
       challengeId: challenge._id,
       metadata: JSON.stringify({ type: challenge.type }),
       createdAt: new Date()
-    });
+    }).catch((err) => console.error('Failed to log QR_SCANNED:', err));
 
     // Return ONLY the current challenge info (NO answerHash, NO letterId, NO dummy status)
     return NextResponse.json({

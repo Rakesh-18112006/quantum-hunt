@@ -99,13 +99,17 @@ export default function TreasureHunt() {
     const [err, setErr] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     
+    // A DUMMY node has no options to pick from - it is a dead end, not a
+    // question - so there is nothing to select before the button enables.
+    const isUnanswerable = !activeChallenge.options || activeChallenge.options.length === 0;
+
     const submit = async () => {
       setSubmitting(true);
       try {
         const res = await fetch(`/api/hunt/challenge/${activeChallenge.id}/answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answer: ans })
+          body: JSON.stringify({ answer: isUnanswerable ? 'acknowledge' : ans })
         });
         const data = await res.json();
         if (res.ok && data.success) {
@@ -140,7 +144,7 @@ export default function TreasureHunt() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '1rem 0' }}>
             {activeChallenge.options?.map((opt: string, i: number) => (
-              <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '4px', cursor: 'pointer', border: ans === opt ? '1px solid var(--qh-accent)' : '1px solid transparent' }}>
+              <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: ans === opt ? 'rgba(var(--qh-accent-rgb), 0.1)' : 'var(--qh-node-bg)', padding: '0.5rem', borderRadius: '4px', cursor: 'pointer', border: ans === opt ? '1px solid var(--qh-accent)' : '1px solid var(--qh-border)' }}>
                 <input 
                   type="radio" 
                   name="mcq" 
@@ -155,17 +159,26 @@ export default function TreasureHunt() {
             ))}
           </div>
 
-          {err && <p style={{ color: 'red', fontSize: '0.8rem', textAlign: 'center' }}>Incorrect state. Try again.</p>}
+          {err && <p style={{ color: '#dc2626', fontSize: '0.8rem', textAlign: 'center' }}>Incorrect state. Try again.</p>}
 
-          <button className={css.challengeSubmit} onClick={submit} disabled={!ans || submitting}>
-            {submitting ? 'STABILIZING...' : 'STABILIZE STATE'}
+          <button className={css.challengeSubmit} onClick={submit} disabled={(!isUnanswerable && !ans) || submitting}>
+            {submitting ? 'STABILIZING...' : isUnanswerable ? 'ACKNOWLEDGE' : 'STABILIZE STATE'}
           </button>
         </div>
       </div>
     );
   };
 
-  if (loading && !huntState) return <div style={{ color: 'white', padding: '2rem' }}>Loading...</div>;
+  if (loading && !huntState) {
+    return (
+      <div className={css.mapPage} style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <div className={css.loadingPulse}>
+          <Zap size={28} color="var(--qh-accent)" />
+          <span>CALIBRATING QUANTUM FIELD…</span>
+        </div>
+      </div>
+    );
+  }
 
   const total = huntState?.stats?.discoveredFragments || 0;
   const pct = huntState?.stats?.totalFragments ? Math.round((total / huntState.stats.totalFragments) * 100) : 0;
@@ -241,8 +254,15 @@ export default function TreasureHunt() {
 
       {showScanner && (
         <div className={css.modalOverlay}>
+          {/*
+            QuantumScanner renders its own header with a working CLOSE
+            button, so this used to stack a second close button on top of
+            it - one with no visible effect of its own beyond a stray X,
+            since .closeBtn's position:absolute had no positioned ancestor
+            here (ChallengeModal below sets that inline; this wrapper never
+            did) and it floated at the viewport corner instead of the card's.
+          */}
           <div className={css.modalContent}>
-            <button className={css.closeBtn} onClick={() => setShowScanner(false)}><X size={20}/></button>
             <QuantumScanner onScanSuccess={handleScanSuccess} onClose={() => setShowScanner(false)} />
           </div>
         </div>

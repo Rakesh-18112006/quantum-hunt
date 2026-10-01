@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise, { getDb } from '@/lib/mongodb';
+import { getDb } from '@/lib/mongodb';
 import { getSession } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
@@ -38,34 +38,38 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Challenge not found or inactive' }, { status: 404 });
     }
 
-    // DUMMIES can be answered now
-
     // Check if already solved
     const existing = await db.collection('ParticipantChallenge').findOne({ participantId, challengeId });
     if (existing?.status === 'SOLVED') {
       return NextResponse.json({ error: 'Already solved' }, { status: 400 });
     }
 
-    const isCorrect = challenge.answerHash === hashAnswer(answer);
+    // A DUMMY node has no real answer to check - answerHash is stored as an
+    // empty string, which would never equal hashAnswer(anything), so it was
+    // previously impossible to ever "pass" one (the frontend has no options
+    // to pick for a dummy either - see TreasureHunt's ChallengeModal). Any
+    // acknowledgement of a dummy counts as solved; there was never a fragment
+    // to withhold here.
+    const isCorrect = challenge.type === 'DUMMY' ? true : challenge.answerHash === hashAnswer(answer);
 
     // Update attempts
     await db.collection('ParticipantChallenge').updateOne(
       { participantId, challengeId },
-      { 
+      {
         $set: { status: isCorrect ? 'SOLVED' : 'ATTEMPTED' },
         $inc: { attempts: 1 }
       },
       { upsert: true }
     );
 
-    // Log event
-    await db.collection('HuntEvent').insertOne({
+    // Analytics only - never blocks the response.
+    db.collection('HuntEvent').insertOne({
       participantId,
       eventType: isCorrect ? 'ANSWER_CORRECT' : 'ANSWER_FAILED',
       challengeId,
       metadata: JSON.stringify({ isDummy: challenge.type === 'DUMMY' }),
       createdAt: new Date()
-    });
+    }).catch((err) => console.error('Failed to log answer event:', err));
 
     if (!isCorrect) {
       return NextResponse.json({ success: false, message: 'Quantum state unresolved. Incorrect answer.' });
@@ -90,13 +94,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         { $setOnInsert: { participantId, letterId: challenge.letterId, discoveredAt: new Date() } },
         { upsert: true }
       );
-      
-      await db.collection('HuntEvent').insertOne({
+
+      db.collection('HuntEvent').insertOne({
         participantId,
         eventType: 'LETTER_UNLOCKED',
         challengeId,
         createdAt: new Date()
-      });
+      }).catch((err) => console.error('Failed to log LETTER_UNLOCKED:', err));
 
       // CHECK FOR WORD COMPLETION
       // Find the word this letter belongs to
@@ -105,12 +109,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const wordId = letter.wordId;
         // How many letters in this word total?
         const totalLetters = await db.collection('GameLetter').countDocuments({ wordId });
-        
+
         // How many of this word's letters has the participant unlocked?
         // First get all letter IDs for this word
         const wordLetters = await db.collection('GameLetter').find({ wordId }).toArray();
         const wordLetterIds = wordLetters.map(l => l._id);
-        
+
         const unlockedCount = await db.collection('ParticipantLetter').countDocuments({
           participantId,
           letterId: { $in: wordLetterIds }
@@ -123,13 +127,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             { $setOnInsert: { participantId, wordId, completedAt: new Date() } },
             { upsert: true }
           );
-          
-          await db.collection('HuntEvent').insertOne({
+
+          db.collection('HuntEvent').insertOne({
             participantId,
             eventType: 'WORD_COMPLETED',
             metadata: JSON.stringify({ wordId }),
             createdAt: new Date()
-          });
+          }).catch((err) => console.error('Failed to log WORD_COMPLETED:', err));
         }
       }
     }
@@ -137,8 +141,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Get the newly unlocked letter to return to frontend
     const unlockedLetter = await db.collection('GameLetter').findOne({ _id: challenge.letterId });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Measurement successful.',
       fragment: unlockedLetter ? {
         position: unlockedLetter.position,

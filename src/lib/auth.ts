@@ -1,6 +1,5 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
-import { v4 as uuidv4 } from 'uuid';
 
 const getJwtSecretKey = () => {
   const secret = process.env.JWT_SECRET;
@@ -10,7 +9,7 @@ const getJwtSecretKey = () => {
   return new TextEncoder().encode(secret);
 };
 
-export async function createSessionToken(payload: any) {
+export async function createSessionToken(payload: JWTPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -22,7 +21,7 @@ export async function verifySessionToken(token: string) {
   try {
     const verified = await jwtVerify(token, getJwtSecretKey());
     return verified.payload;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

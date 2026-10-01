@@ -1,0 +1,192 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(var(--qh-accent-rgb), 0.10), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(124, 58, 237, 0.10), transparent 45%),
+    var(--qh-bg);
+}
+
+.checkingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--qh-accent);
+}
+
+.spin {
+  animation: qh-spin 0.9s linear infinite;
+}
+@keyframes qh-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Ambient floating qubits - compositor-only (transform + opacity), never touches layout */
+.orbField {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.orb {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--qh-accent), transparent 70%);
+  opacity: 0.5;
+  animation: qh-orb-float 6s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+@keyframes qh-orb-float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
+  50% { transform: translateY(-18px) scale(1.3); opacity: 0.7; }
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 2.25rem 2rem;
+  border-radius: 20px;
+  background: var(--qh-surface);
+  border: 1px solid var(--qh-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px -20px rgba(8, 145, 178, 0.25), 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(var(--qh-accent-rgb), 0.16), rgba(124, 58, 237, 0.16));
+  border: 1px solid var(--qh-border);
+}
+.badgeIcon {
+  color: var(--qh-accent);
+  animation: qh-spin 7s linear infinite;
+}
+
+.title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  background: linear-gradient(135deg, var(--qh-accent), var(--qh-accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0;
+}
+
+.subtitle {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--qh-muted);
+}
+
+.field {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  background: var(--qh-node-bg);
+  border: 1px solid var(--qh-border);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.field:focus-within {
+  border-color: var(--qh-accent);
+  box-shadow: 0 0 0 3px rgba(var(--qh-accent-rgb), 0.15);
+}
+
+.fieldIcon {
+  color: var(--qh-accent);
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--qh-text);
+  font-size: 0.95rem;
+  font-family: 'Space Grotesk', monospace;
+  letter-spacing: 0.03em;
+}
+.input::placeholder {
+  color: var(--qh-faint);
+}
+
+.error {
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: #dc2626;
+  text-align: center;
+}
+
+.submit {
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--qh-accent), var(--qh-accent2));
+  color: #ffffff;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 8px 24px -8px rgba(var(--qh-accent-rgb), 0.55);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -8px rgba(var(--qh-accent-rgb), 0.65);
+}
+.submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+.submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.footnote {
+  margin: 0;
+  font-size: 0.65rem;
+  color: var(--qh-faint);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb, .badgeIcon, .spin {
+    animation: none;
+  }
+}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise, { getDb } from '@/lib/mongodb';
+import { getDb } from '@/lib/mongodb';
 import crypto from 'crypto';
 
 export async function POST() {
@@ -29,7 +29,7 @@ export async function POST() {
     }
 
     return NextResponse.json({ success: true, message: `Generated QRs up to 100 total.` });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }
@@ -61,7 +61,7 @@ export async function GET() {
         letterValue: qr.letter?.letterValue || null
       }))
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

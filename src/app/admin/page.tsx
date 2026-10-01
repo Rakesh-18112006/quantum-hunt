@@ -1,13 +1,49 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
+import { Atom, Trophy, QrCode, Download, Loader2, RefreshCw } from 'lucide-react';
+import css from './Admin.module.css';
+
+interface Winner {
+  publicId: string;
+  name: string;
+  lastCompletedAt: string;
+}
+
+interface LeaderRow {
+  publicId: string;
+  name: string;
+  fragments: number;
+  lastFragmentAt: string;
+}
+
+interface Stats {
+  participants: number;
+  correctAnswers: number;
+  fullCompletions: number;
+  winners: Winner[];
+  leaderboard: LeaderRow[];
+}
+
+interface QrRow {
+  id: string;
+  token: string;
+  type: 'REAL' | 'DUMMY';
+  observationPoint: string;
+  letterValue: string | null;
+}
+
+const EASE: [number, number, number, number] = [0.2, 0.65, 0.3, 0.9];
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [qrs, setQrs] = useState<any[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [qrs, setQrs] = useState<QrRow[]>([]);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [board, setBoard] = useState<'live' | 'winners'>('live');
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
     const res = await fetch('/api/admin/stats');
@@ -27,23 +63,32 @@ export default function AdminDashboard() {
     fetchQRs();
   }, []);
 
+  const refreshAll = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchStats(), fetchQRs()]);
+    setRefreshing(false);
+  };
+
   const generateQRs = async () => {
     await fetch('/api/admin/qrs', { method: 'POST' });
     fetchQRs();
   };
 
-  const downloadQR = async (qr: any) => {
+  // Printed QR stickers around campus already point at /login?token=... (a
+  // Google-Lens-opened scan always lands somewhere sensible that way, logged
+  // in or not), so any newly generated code matches the ones already out
+  // there instead of introducing a second URL shape.
+  const qrUrlFor = (token: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    return `${baseUrl}/login?token=${token}`;
+  };
+
+  const downloadQR = async (qr: QrRow) => {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      const qrData = `${baseUrl}/treasure?token=${qr.token}`;
-      
-      const dataUrl = await QRCode.toDataURL(qrData, {
+      const dataUrl = await QRCode.toDataURL(qrUrlFor(qr.token), {
         width: 1024,
         margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff',
-        },
+        color: { dark: '#000000', light: '#ffffff' },
       });
 
       const link = document.createElement('a');
@@ -63,26 +108,26 @@ export default function AdminDashboard() {
     setIsGeneratingPdf(true);
     try {
       const doc = new jsPDF({ format: 'a4', unit: 'mm' });
-      
+
       let realCounter = 1;
       let dummyCounter = 1;
-      
+
       const realQrs = qrs.filter(q => q.type === 'REAL');
       const dummyQrs = qrs.filter(q => q.type === 'DUMMY');
       const allSorted = [...realQrs, ...dummyQrs];
-      
+
       const x = 30;
       const y = 20;
       const size = 65; // 65x65 mm image
-      const xSpacing = 85; 
+      const xSpacing = 85;
       const ySpacing = 90;
-      
+
       let col = 0;
       let row = 0;
 
       for (let i = 0; i < allSorted.length; i++) {
         const qr = allSorted[i];
-        
+
         let label = '';
         let letterLabel = '';
         if (qr.type === 'REAL') {
@@ -94,9 +139,7 @@ export default function AdminDashboard() {
           label = `DUMMY_${String(dummyCounter++).padStart(2, '0')}`;
         }
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const qrData = `${baseUrl}/treasure?token=${qr.token}`;
-        const dataUrl = await QRCode.toDataURL(qrData, {
+        const dataUrl = await QRCode.toDataURL(qrUrlFor(qr.token), {
           width: 512,
           margin: 1,
           color: { dark: '#000000', light: '#ffffff' }
@@ -108,12 +151,12 @@ export default function AdminDashboard() {
         doc.addImage(dataUrl, 'PNG', currentX, currentY, size, size);
         doc.setFontSize(14);
         doc.text(label, currentX + (size / 2), currentY + size + 7, { align: 'center' });
-        
+
         doc.setFontSize(10);
         if (letterLabel) {
           doc.text(letterLabel, currentX + (size / 2), currentY + size + 12, { align: 'center' });
         }
-        
+
         doc.setFontSize(8);
         doc.text(qr.observationPoint, currentX + (size / 2), currentY + size + 17, { align: 'center', maxWidth: size });
 
@@ -127,7 +170,7 @@ export default function AdminDashboard() {
           }
         }
       }
-      
+
       doc.save('Quantum_Hunt_All_100_QRs.pdf');
     } catch (err) {
       console.error('Failed to generate PDF', err);
@@ -137,108 +180,174 @@ export default function AdminDashboard() {
     }
   };
 
-  return (
-    <div style={{ padding: '2rem', color: 'white', fontFamily: 'monospace' }}>
-      <h1>Quantum Hunt Admin</h1>
-      
-      <div style={{ display: 'flex', gap: '2rem', margin: '2rem 0' }}>
-        <div style={{ border: '1px solid #333', padding: '1rem' }}>
-          <h3>Participants</h3>
-          <p style={{ fontSize: '2rem' }}>{stats?.participants || 0}</p>
-        </div>
-        <div style={{ border: '1px solid #333', padding: '1rem' }}>
-          <h3>Correct Answers</h3>
-          <p style={{ fontSize: '2rem' }}>{stats?.correctAnswers || 0}</p>
-        </div>
-        <div style={{ border: '1px solid #333', padding: '1rem' }}>
-          <h3>Completed Hunts</h3>
-          <p style={{ fontSize: '2rem' }}>{stats?.fullCompletions || 0}</p>
-        </div>
-      </div>
+  const rankClass = (i: number) =>
+    i === 0 ? css.rankGold : i === 1 ? css.rankSilver : i === 2 ? css.rankBronze : undefined;
 
-      <div style={{ margin: '2rem 0', border: '1px solid #333', padding: '1rem' }}>
-        <h2 style={{ color: '#22d3ee' }}>Leaderboard (Winners)</h2>
-        {stats?.winners && stats.winners.length > 0 ? (
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginTop: '1rem' }}>
+  return (
+    <div className={css.page}>
+      <motion.div
+        className={css.header}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: EASE }}
+      >
+        <Atom size={26} className={css.headerIcon} />
+        <h1 className={css.title}>QUANTUM HUNT — ADMIN</h1>
+      </motion.div>
+
+      <div className={css.container}>
+        <motion.div
+          className={css.statGrid}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05, ease: EASE }}
+        >
+          <div className={css.statCard}>
+            <div className={css.statLabel}>Participants</div>
+            <div className={css.statValue}>{stats?.participants ?? '—'}</div>
+          </div>
+          <div className={css.statCard}>
+            <div className={css.statLabel}>Correct Answers</div>
+            <div className={css.statValue}>{stats?.correctAnswers ?? '—'}</div>
+          </div>
+          <div className={css.statCard}>
+            <div className={css.statLabel}>Completed Hunts</div>
+            <div className={css.statValue}>{stats?.fullCompletions ?? '—'}</div>
+          </div>
+          <div className={css.statCard}>
+            <div className={css.statLabel}>QR Codes</div>
+            <div className={css.statValue}>{qrs.length}</div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className={css.panel}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: EASE }}
+        >
+          <div className={css.panelHeader}>
+            <h2 className={css.panelTitle}><Trophy size={16} /> Leaderboard</h2>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <div className={css.tabRow}>
+                <button
+                  className={`${css.tabBtn} ${board === 'live' ? css.tabBtnActive : ''}`}
+                  onClick={() => setBoard('live')}
+                >
+                  LIVE PROGRESS
+                </button>
+                <button
+                  className={`${css.tabBtn} ${board === 'winners' ? css.tabBtnActive : ''}`}
+                  onClick={() => setBoard('winners')}
+                >
+                  WINNERS
+                </button>
+              </div>
+              <button className={css.smallBtn} onClick={refreshAll} disabled={refreshing} aria-label="Refresh">
+                <RefreshCw size={13} className={refreshing ? css.loadingSpin : ''} />
+              </button>
+            </div>
+          </div>
+
+          {board === 'live' ? (
+            stats?.leaderboard && stats.leaderboard.length > 0 ? (
+              <table className={css.table}>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Public ID</th>
+                    <th>Fragments</th>
+                    <th>Last Find</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.leaderboard.map((row, i) => (
+                    <tr key={row.publicId}>
+                      <td className={rankClass(i)}>#{i + 1}</td>
+                      <td>{row.name}</td>
+                      <td className={css.publicIdCell}>{row.publicId}</td>
+                      <td>{row.fragments} / 18</td>
+                      <td>{new Date(row.lastFragmentAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className={css.emptyState}>No fragments discovered yet.</p>
+            )
+          ) : stats?.winners && stats.winners.length > 0 ? (
+            <table className={css.table}>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Public ID</th>
+                  <th>Completed At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.winners.map((winner, i) => (
+                  <tr key={winner.publicId}>
+                    <td className={rankClass(i)}>#{i + 1}</td>
+                    <td>{winner.name}</td>
+                    <td className={css.publicIdCell}>{winner.publicId}</td>
+                    <td>{new Date(winner.lastCompletedAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className={css.emptyState}>No participants have completed the hunt yet.</p>
+          )}
+        </motion.div>
+
+        <motion.div
+          className={css.panel}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: EASE }}
+        >
+          <div className={css.panelHeader}>
+            <h2 className={css.panelTitle}><QrCode size={16} /> QR Codes ({qrs.length})</h2>
+            <div className={css.actions}>
+              {qrs.length > 0 && (
+                <button className={`${css.btn} ${css.btnAmber}`} onClick={downloadAllAsPDF} disabled={isGeneratingPdf}>
+                  {isGeneratingPdf ? <Loader2 size={13} className={css.loadingSpin} /> : <Download size={13} />}
+                  {isGeneratingPdf ? 'GENERATING...' : 'DOWNLOAD ALL AS PDF'}
+                </button>
+              )}
+              {qrs.length < 100 && (
+                <button className={`${css.btn} ${css.btnPrimary}`} onClick={generateQRs}>
+                  GENERATE REMAINING
+                </button>
+              )}
+            </div>
+          </div>
+
+          <table className={css.table}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #555' }}>
-                <th style={{ padding: '0.5rem' }}>Rank</th>
-                <th>Name / ID</th>
-                <th>Public ID</th>
-                <th>Completion Time</th>
+              <tr>
+                <th>Type</th>
+                <th>Point</th>
+                <th>Token (URL: /login?token=…)</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {stats.winners.map((winner: any, index: number) => (
-                <tr key={winner.publicId} style={{ borderBottom: '1px solid #222' }}>
-                  <td style={{ padding: '0.5rem', color: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? '#cd7f32' : 'white' }}>
-                    #{index + 1}
+              {qrs.map(qr => (
+                <tr key={qr.id}>
+                  <td style={{ color: qr.type === 'REAL' ? 'var(--qh-accent)' : 'var(--qh-faint)' }}>{qr.type}</td>
+                  <td>{qr.observationPoint}</td>
+                  <td className={css.publicIdCell}>{qr.token}</td>
+                  <td>
+                    <button className={css.smallBtn} onClick={() => downloadQR(qr)}>Download PNG</button>
                   </td>
-                  <td>{winner.name}</td>
-                  <td style={{ color: '#aaa' }}>{winner.publicId}</td>
-                  <td>{new Date(winner.lastCompletedAt).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : (
-          <p style={{ marginTop: '1rem', color: '#888' }}>No participants have completed the hunt yet.</p>
-        )}
-      </div>
-
-      <div style={{ margin: '2rem 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>QR Codes ({qrs.length})</h2>
-          
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            {qrs.length > 0 && (
-              <button 
-                onClick={downloadAllAsPDF}
-                disabled={isGeneratingPdf}
-                style={{ background: '#f59e0b', color: 'black', padding: '0.5rem 1rem', border: 'none', cursor: isGeneratingPdf ? 'wait' : 'pointer', fontWeight: 'bold' }}
-              >
-                {isGeneratingPdf ? 'Generating PDF...' : 'Download All 100 QRs as PDF'}
-              </button>
-            )}
-
-            {qrs.length < 100 && (
-              <button 
-                onClick={generateQRs}
-                style={{ background: '#22d3ee', color: 'black', padding: '0.5rem 1rem', border: 'none', cursor: 'pointer' }}
-              >
-                Generate Remaining QRs up to 100
-              </button>
-            )}
-          </div>
-        </div>
-        
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginTop: '1rem' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #333' }}>
-              <th style={{ padding: '0.5rem' }}>Type</th>
-              <th>Point</th>
-              <th>Token (Print URL: /scan?token=...)</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {qrs.map(qr => (
-              <tr key={qr.id} style={{ borderBottom: '1px solid #222' }}>
-                <td style={{ padding: '0.5rem', color: qr.type === 'REAL' ? '#22d3ee' : '#888' }}>{qr.type}</td>
-                <td>{qr.observationPoint}</td>
-                <td style={{ fontFamily: 'monospace', color: '#aaa' }}>{qr.token}</td>
-                <td>
-                  <button 
-                    onClick={() => downloadQR(qr)}
-                    style={{ background: '#333', color: 'white', padding: '0.2rem 0.5rem', border: '1px solid #555', cursor: 'pointer' }}
-                  >
-                    Download PNG
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        </motion.div>
       </div>
     </div>
   );
