@@ -73,7 +73,7 @@ async function seed() {
     const wordIds = Object.values(wordInsert.insertedIds);
     
     console.log('Inserting game letters...');
-    const letterDocs = [];
+    const letterDocs: any[] = [];
     for (let w = 0; w < CODE_WORDS.length; w++) {
       const wordId = wordIds[w];
       const wordStr = CODE_WORDS[w];
