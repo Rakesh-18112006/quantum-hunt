@@ -24,3 +24,803 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/*
+  The Google Fonts @import used to live here. An @import can only be discovered
+  after this stylesheet has been downloaded and parsed, so the font CSS - and
+  then the font files themselves - sat at the end of a three-hop chain:
+  HTML -> index.css -> fonts.googleapis.com -> fonts.gstatic.com.
+  It is now a <link> in index.html with preconnects, so the browser starts it in
+  parallel with this file. Identical families, weights and display=swap, so the
+  typography is unchanged - it just arrives sooner.
+*/
+@import "tailwindcss";
+
+/*
+  Theme tokens.
+
+  Tailwind's @theme entries point at runtime CSS variables, so every
+  `bg-quantum-*` / `text-quantum-*` utility follows the active theme with no
+  rebuild and no duplicate class names. The dark values are byte-identical to
+  what shipped before, so the existing dark look is unchanged.
+
+  Channel triplets (`--q-*-rgb`) exist so components can compose their own
+  alphas: rgb(var(--q-primary-rgb) / 0.25).
+*/
+@theme {
+  --color-quantum-bg: var(--q-bg);
+  --color-quantum-elev: var(--q-elev);
+  --color-quantum-primary: var(--q-primary);
+  --color-quantum-strong: var(--q-primary-strong);
+  --color-quantum-secondary: var(--q-secondary);
+  --color-quantum-surface: var(--q-surface);
+  --color-quantum-border: var(--q-border);
+  --color-quantum-text: var(--q-text);
+  --color-quantum-muted: var(--q-muted);
+  --color-quantum-faint: var(--q-faint);
+  --color-quantum-onprimary: var(--q-on-primary);
+}
+
+/* ---------------------------------------------------------------- DARK (default) */
+:root,
+:root[data-theme='dark'] {
+  /* ── Treasure hunt theme tokens ── */
+  --qh-bg:         #020617;
+  --qh-bg-glass:   rgba(2, 6, 23, 0.85);
+  --qh-surface:    rgba(15, 23, 42, 0.70);
+  --qh-border:     rgba(34, 211, 238, 0.15);
+  --qh-grid:       rgba(34, 211, 238, 0.018);
+  --qh-accent:     #22d3ee;
+  --qh-accent-rgb: 34 211 238;
+  --qh-accent2:    #a78bfa;
+  --qh-accent3:    #60a5fa;
+  --qh-text:       #e2e8f0;
+  --qh-muted:      #64748b;
+  --qh-faint:      #334155;
+  --qh-deep:       #1e293b;
+  --qh-node-bg:    rgba(15, 23, 42, 0.90);
+  --qh-path-lock:  rgba(30, 41, 59, 0.60);
+  --qh-scan-bg:    rgba(2, 6, 23, 0.95);
+  --qh-btn-fg:     #020617;
+  color-scheme: dark;
+
+  --q-bg: #030014;
+  --q-elev: #0b0a1a;
+  --q-surface: rgba(255, 255, 255, 0.03);
+  --q-border: rgba(138, 63, 252, 0.2);
+
+  --q-text: #e2e8f0;
+  --q-muted: rgba(226, 232, 240, 0.62);
+  --q-faint: rgba(226, 232, 240, 0.38);
+
+  --q-primary: #8a3ffc;
+  --q-primary-strong: #a970ff;
+  --q-secondary: #0f62fe;
+  --q-on-primary: #ffffff;
+
+  --q-bg-rgb: 3 0 20;
+  --q-text-rgb: 226 232 240;
+  --q-primary-rgb: 138 63 252;
+  --q-secondary-rgb: 15 98 254;
+
+  /* Page wash behind everything */
+  --q-wash-1: rgba(138, 63, 252, 0.15);
+  --q-wash-2: rgba(15, 98, 254, 0.15);
+  /* Neutral that reads as "ink" on this theme - used by glass fills */
+  --q-ink-rgb: 255 255 255;
+}
+
+/* ---------------------------------------------------------------- LIGHT */
+/* Pink over cool white. */
+:root[data-theme='light'] {
+  /* ── Treasure hunt theme tokens ── */
+  --qh-bg:         #f0f4f8;
+  --qh-bg-glass:   rgba(240, 244, 248, 0.90);
+  --qh-surface:    rgba(255, 255, 255, 0.80);
+  --qh-border:     rgba(6, 148, 162, 0.22);
+  --qh-grid:       rgba(6, 148, 162, 0.04);
+  --qh-accent:     #0891b2;
+  --qh-accent-rgb: 8 145 178;
+  --qh-accent2:    #7c3aed;
+  --qh-accent3:    #2563eb;
+  --qh-text:       #0f172a;
+  --qh-muted:      #475569;
+  --qh-faint:      #94a3b8;
+  --qh-deep:       #cbd5e1;
+  --qh-node-bg:    rgba(255, 255, 255, 0.90);
+  --qh-path-lock:  rgba(148, 163, 184, 0.40);
+  --qh-scan-bg:    rgba(240, 244, 248, 0.97);
+  --qh-btn-fg:     #ffffff;
+  color-scheme: light;
+
+  --q-bg: #f8f9fa;
+  --q-elev: #ffffff;
+  --q-surface: rgba(11, 11, 15, 0.035);
+  --q-border: rgba(247, 127, 190, 0.42);
+
+  --q-text: #0b0b0f;
+  --q-muted: rgba(11, 11, 15, 0.62);
+  --q-faint: rgba(11, 11, 15, 0.4);
+
+  --q-primary: #f77fbe;
+  --q-primary-strong: #b01b60;
+  --q-secondary: #141418;
+  --q-on-primary: #1a0a12;
+
+  --q-bg-rgb: 248 249 250;
+  --q-text-rgb: 11 11 15;
+  --q-primary-rgb: 247 127 190;
+  --q-secondary-rgb: 20 20 24;
+
+  --q-wash-1: rgba(15, 98, 254, 0.08);
+  --q-wash-2: rgba(247, 127, 190, 0.15);
+  --q-ink-rgb: 11 11 15;
+}
+
+/*
+  The intro cinematic is a self-contained dark stage - a lit 3D scene on black,
+  with its own lighting rig. It keeps the dark palette in BOTH themes so the
+  animation is never disturbed; the theme toggle and navbar sitting on top of it
+  inherit these scoped tokens and stay readable.
+*/
+.cinematic-stage {
+  color-scheme: dark;
+
+  --q-bg: #030014;
+  --q-elev: #0b0a1a;
+  --q-surface: rgba(255, 255, 255, 0.06);
+  --q-border: rgba(255, 255, 255, 0.14);
+
+  --q-text: #f8faff;
+  --q-muted: rgba(248, 250, 255, 0.62);
+  --q-faint: rgba(248, 250, 255, 0.38);
+
+  --q-primary: #8a3ffc;
+  --q-primary-strong: #a970ff;
+  --q-secondary: #0f62fe;
+  --q-on-primary: #ffffff;
+
+  --q-primary-rgb: 138 63 252;
+  --q-secondary-rgb: 15 98 254;
+  --q-text-rgb: 248 250 255;
+  --q-ink-rgb: 255 255 255;
+
+  /*
+    The @theme mapping (--color-quantum-* : var(--q-*)) is declared on :root, so
+    it resolves against :root's values and a descendant override of --q-* alone
+    would not reach the utilities. Re-declaring the mapped names here re-resolves
+    the indirection inside this scope.
+  */
+  --color-quantum-bg: var(--q-bg);
+  --color-quantum-elev: var(--q-elev);
+  --color-quantum-primary: var(--q-primary);
+  --color-quantum-strong: var(--q-primary-strong);
+  --color-quantum-secondary: var(--q-secondary);
+  --color-quantum-surface: var(--q-surface);
+  --color-quantum-border: var(--q-border);
+  --color-quantum-text: var(--q-text);
+  --color-quantum-muted: var(--q-muted);
+  --color-quantum-faint: var(--q-faint);
+  --color-quantum-onprimary: var(--q-on-primary);
+}
+
+body {
+  background-color: var(--q-bg);
+  background-image:
+    radial-gradient(circle at 15% 50%, var(--q-wash-1), transparent 25%),
+    radial-gradient(circle at 85% 30%, var(--q-wash-2), transparent 25%);
+  color: var(--q-text);
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+h1, h2, h3, h4, h5, h6, .font-orbitron {
+  font-family: 'Orbitron', sans-serif;
+}
+
+/* Quantum intro HUD indicator */
+@keyframes quantum-intro-pulse {
+  0% { opacity: 0.3; box-shadow: 0 0 0 var(--q-primary); }
+  100% { opacity: 1; box-shadow: 0 0 8px var(--q-primary); }
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--color-quantum-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-quantum-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glass-input {
+  background: rgb(var(--q-ink-rgb) / 0.06);
+  border: 1px solid rgb(var(--q-ink-rgb) / 0.14);
+  color: var(--q-text);
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: var(--q-primary);
+  box-shadow: 0 0 15px rgb(var(--q-primary-rgb) / 0.3);
+  background: rgb(var(--q-ink-rgb) / 0.1);
+}
+
+.quantum-button {
+  background: linear-gradient(135deg, var(--q-primary), var(--q-secondary));
+  color: var(--q-on-primary);
+  transition: all 0.3s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.quantum-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgb(var(--q-primary-rgb) / 0.4);
+}
+
+.quantum-button:active {
+  transform: translateY(0);
+}
+
+/* Custom Scrollbar (Hidden as requested) */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 400ms;
+}
+/* ---------------------------------------------------------------- MOTION */
+
+/*
+  The "SCROLL" affordance under the intro section.
+
+  A CSS keyframe rather than a JS-driven loop: it never stops, and the browser
+  can run opacity + transform entirely on the compositor, so it costs nothing
+  on the main thread even while the page is being scrolled. The translateX is
+  baked into every keyframe because the element is also centred with a
+  transform, and an animation on `transform` replaces it outright.
+*/
+@keyframes scroll-cue {
+  0%, 100% { opacity: 0.25; transform: translateX(-50%) translateY(0); }
+  50%      { opacity: 0.8;  transform: translateX(-50%) translateY(5px); }
+}
+
+.scroll-cue {
+  animation: scroll-cue 2.4s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------- MOBILE COST */
+/* ---------------------------------------------------------------- TEAM CARD HOVER ANIMATION */
+/* ---------------------------------------------------------------- TEAM CARD INTERACTION */
+:root {
+  --bg-hover-1: #fdb93b;
+  --bg-hover-2: #f8a827;
+  --team-ink: #0c001f;
+  --team-paper: #ffffff;
+}
+
+.team-card-wrapper {
+  width: 100%;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Single unified sleek card - no double borders */
+.team-card {
+  width: 100%;
+  height: 460px;
+  border-radius: 20px;
+  background: var(--q-elev);
+  border: 1px solid var(--q-border);
+  box-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card-wrapper:hover .team-card {
+  transform: translateY(-3px);
+  box-shadow: 0 28px 56px -12px rgba(0, 0, 0, 0.5);
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--q-elev);
+}
+
+/* Subtle bottom vignette so buttons and text are visible and image seamlessly blends with card bottom */
+.card-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(12, 0, 31, 0.88) 0%,
+    rgba(12, 0, 31, 0.58) 16%,
+    rgba(12, 0, 31, 0.22) 30%,
+    rgba(12, 0, 31, 0.04) 44%,
+    transparent 58%
+  );
+  z-index: 4;
+  transition: opacity 0.5s ease;
+}
+
+.card-inner.expanded::after {
+  opacity: 0.95;
+}
+
+/* Color Boom from the CENTER of the card filling all space */
+.card-circle-bg {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 950px;
+  height: 950px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--bg-hover-1, #fdb93b) 0%, var(--bg-hover-2, #f8a827) 70%, var(--bg-hover-3, #ee9b1b) 100%);
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 3.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transform-origin: center center;
+}
+
+.card-circle-bg.expanded {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.card-media {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.member-photo {
+  width: 92%;
+  height: 96%;
+  object-fit: contain;
+  object-position: bottom center;
+  border-radius: 10px 10px 0 0;
+  filter: contrast(1.08) grayscale(1) drop-shadow(0 15px 20px rgba(0, 0, 0, 0.35));
+  transition: filter 0.8s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom center;
+}
+
+/* Zoom effect on hover for image without lifting from the bottom */
+.team-card-wrapper:hover .member-photo {
+  transform: scale(1.02);
+}
+
+.member-photo.in-color {
+  filter: contrast(1.05) grayscale(0) drop-shadow(0 20px 28px rgba(0, 0, 0, 0.45));
+}
+
+.card-text {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.idle-text {
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.idle-text .eyebrow {
+  display: block;
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 28px;
+  color: #f5af19;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.idle-text .title {
+  display: block;
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 34px;
+  color: var(--q-text);
+  letter-spacing: 1.5px;
+  line-height: 1.1;
+}
+
+.quote-text {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 0 16px;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.quote-text p {
+  margin: 0;
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.15;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.quote-text.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.idle-text.inactive {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* Actions at Bottom */
+.card-actions {
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.toggle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #ffc947;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  transition: transform 0.4s ease, background 0.4s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-btn:hover {
+  transform: scale(1.08);
+}
+
+.toggle-btn.expanded {
+  background: #ffc947;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.icon-plus {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.icon-plus::before,
+.icon-plus::after {
+  content: "";
+  position: absolute;
+  background: #0c001f;
+  border-radius: 2px;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.icon-plus::before {
+  left: 0;
+  top: 6px;
+  width: 14px;
+  height: 2px;
+}
+
+.icon-plus::after {
+  top: 0;
+  left: 6px;
+  width: 2px;
+  height: 14px;
+}
+
+.toggle-btn.expanded .icon-plus::after {
+  transform: scaleY(0);
+  opacity: 0;
+}
+
+.social-btn {
+  width: 0;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 700;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.social-btn.show {
+  width: 40px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.social-btn:hover {
+  transform: scale(1.12);
+}
+
+.social-btn.linkedin {
+  background: #0c001f;
+  transition-delay: 0.04s;
+}
+
+.social-btn.instagram {
+  background: #0c001f;
+  transition-delay: 0.1s;
+}
+
+.social-btn.github {
+  background: #0c001f;
+  transition-delay: 0.16s;
+}
+
+.social-btn.website {
+  background: #0c001f;
+  transition-delay: 0.22s;
+}
+
+.sparkle {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  line-height: 1;
+  transform: rotate(0deg) scale(1);
+  transition: transform 0.6s ease, color 0.4s ease;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.sparkle.active {
+  color: #ffffff;
+  transform: rotate(90deg) scale(1.3);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+.member-info {
+  text-align: center;
+  margin-top: 14px;
+  color: var(--q-text);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Zoom/move effect on hover for name & role */
+.team-card-wrapper:hover .member-info {
+  transform: translateY(-4px) scale(1.025);
+}
+
+.member-info h3 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+  font-family: 'Orbitron', 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.member-info p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--q-muted);
+  font-weight: 400;
+}
+
+
+/*
+  Phones are fill-rate bound, and this design leans on two of the most
+  expensive effects there are.
+
+  `backdrop-filter` forces the compositor to snapshot everything painted behind
+  the element and blur it again on every frame the page scrolls - and the page
+  has a dozen of these panels, several of them over a live WebGL canvas. The
+  large `blur-3xl` washes are cheaper (they are static) but still allocate very
+  large blurred layers on a device with little GPU memory to spare.
+
+  Below the tablet breakpoint both are traded for a flat translucent fill and a
+  much smaller blur radius. The composition and colour are unchanged; only the
+  per-frame cost of them goes away.
+*/
+@media (max-width: 900px) {
+  [class*="backdrop-blur"],
+  .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  [class*="blur-3xl"] {
+    filter: blur(28px) !important;
+  }
+
+  /* The page wash is a full-viewport paint that never changes; two gradients
+     are enough of it on a small screen. */
+  body {
+    background-attachment: scroll;
+  }
+}
+
+/*
+  Honour the OS setting. Everything below is decoration - the content is all
+  present and readable with the motion removed, and the 3D intro already drops
+  to its low-cost tier through the same media query in deviceTier.ts.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .float-slow {
+    animation: float 6s ease-in-out infinite;
+  }
+  .float-mid {
+    animation: float 4.5s ease-in-out infinite;
+  }
+  .float-fast {
+    animation: float 3.5s ease-in-out infinite;
+  }
+}
+
+/*
+  Scroll lock for the duration of the intro. See src/lib/scrollLock.ts for why
+  this needs html + body + touch-action rather than just `body { overflow }`.
+  Nothing here affects layout, so applying and removing it moves nothing.
+*/
+html.qff-scroll-locked,
+html.qff-scroll-locked body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+/*
+  Give vertical swipes back to the browser over the cryostat canvas.
+
+  OrbitControls sets `touch-action: none` inline on the canvas when it connects,
+  which stops the page scrolling for any gesture that starts on it. A stylesheet
+  rule marked !important outranks a plain inline style, so this wins without
+  having to fight the control's lifecycle.
+
+  `pan-y` is the exact split we want: the browser takes vertical panning (the
+  page scrolls natively, on the compositor), while horizontal drags still reach
+  OrbitControls and rotate the model. The polar angle is clamped to a narrow
+  band anyway, so vertical dragging barely moved the model - almost nothing is
+  given up, and the auto-rotate that people actually see is untouched.
+*/
+.qc-stage canvas {
+  touch-action: pan-y !important;
+}
+
+/*
+  The intro's "scroll to explore" tick. Identical curve to the framer-motion
+  loop it replaces - 2s ease-in-out, y 0 -> 8px -> 0, opacity .3 -> 1 -> .3 -
+  but it runs on the compositor instead of framer's main-thread frame loop.
+*/
+.scroll-tick {
+  animation: scroll-tick 2s ease-in-out infinite;
+}
+
+@keyframes scroll-tick {
+  0%   { transform: translateY(0);   opacity: 0.3; }
+  50%  { transform: translateY(8px); opacity: 1; }
+  100% { transform: translateY(0);   opacity: 0.3; }
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0); }
+}
+
+/* ---------------------------------------------------------------- QUANTUM SKETCHES */
+
+@keyframes sketch-drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(3px, -2px, 0); }
+}
+
+@keyframes sketch-drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-3px, 2px, 0); }
+}
+
+@keyframes sketch-float-1 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -4px, 0); }
+}
+
+@keyframes sketch-float-2 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, 4px, 0); }
+}
+
+@keyframes sketch-rotate-1 {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes sketch-rotate-2 {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+}
+
+@keyframes sketch-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.97); }
+}
+
+@layer utilities {
+  .animate-sketch-drift-1 { animation: sketch-drift-1 infinite ease-in-out; }
+  .animate-sketch-drift-2 { animation: sketch-drift-2 infinite ease-in-out; }
+  .animate-sketch-float-1 { animation: sketch-float-1 infinite ease-in-out; }
+  .animate-sketch-float-2 { animation: sketch-float-2 infinite ease-in-out; }
+  .animate-sketch-rotate-1 { animation: sketch-rotate-1 infinite ease-in-out; }
+  .animate-sketch-rotate-2 { animation: sketch-rotate-2 infinite ease-in-out; }
+  .animate-sketch-pulse { animation: sketch-pulse infinite ease-in-out; }
+}
+
+/* India reach map - expanding ring on each lit state and the host campus. */
+@keyframes ir-ping {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  80%, 100% { transform: scale(3.2); opacity: 0; }
+}
+.ir-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ir-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.ir-ping-slow { animation-duration: 3.2s; }
+@media (prefers-reduced-motion: reduce) {
+  .ir-ping { animation: none; opacity: 0; }
+}
