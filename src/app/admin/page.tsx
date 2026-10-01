@@ -74,12 +74,25 @@ export default function AdminDashboard() {
     fetchQRs();
   };
 
-  // Printed QR stickers around campus already point at /login?token=... (a
-  // Google-Lens-opened scan always lands somewhere sensible that way, logged
-  // in or not), so any newly generated code matches the ones already out
-  // there instead of introducing a second URL shape.
+  /*
+    Printed QR stickers around campus already point at /login?token=... (a
+    Google-Lens-opened scan always lands somewhere sensible that way, logged
+    in or not), so any newly generated code matches the ones already out
+    there instead of introducing a second URL shape.
+
+    The previous version of this fell back to window.location.origin when
+    NEXT_PUBLIC_APP_URL wasn't set - which is exactly what happened the one
+    time it mattered: someone ran the admin page with `next dev` (which never
+    reads .env.production) and printed 100 stickers encoding
+    http://localhost:3000, unreachable from any other phone on earth. A QR
+    code gets generated once and printed for weeks; the page it happened to
+    be generated from is never the right fallback for that. The literal
+    production URL below is the only fallback now - if it's ever wrong,
+    that's loud and wrong in the preview, not silently wrong on a sticker.
+  */
+  const DEPLOYED_URL = 'https://quantum-hunt.vercel.app';
   const qrUrlFor = (token: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || DEPLOYED_URL;
     return `${baseUrl}/login?token=${token}`;
   };
 

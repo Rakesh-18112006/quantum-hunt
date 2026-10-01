@@ -235,9 +235,10 @@ export default function TreasureHunt() {
                   </div>
                   <div className={css.codeDots}>
                     {word.fragments.map((frag: any, j: number) => (
-                      <div key={j} className={`${css.codeDot} ${frag.discovered ? css.codeDotFilled : css.codeDotEmpty}`} style={{ color: CODE_COLORS[i] }}>
-                        {frag.discovered ? frag.displayValue : ''}
-                      </div>
+                      // Filled when a fragment is discovered - the letter
+                      // itself stays hidden until the whole word is, so one
+                      // scan doesn't spoil it letter by letter.
+                      <div key={j} className={`${css.codeDot} ${frag.discovered ? css.codeDotFilled : css.codeDotEmpty}`} style={{ color: CODE_COLORS[i] }} />
                     ))}
                   </div>
                   {word.isCompleted && (
