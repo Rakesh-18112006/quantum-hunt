@@ -57,10 +57,13 @@ async function seed() {
     await client.connect();
     const db = client.db();
     
-    console.log('Clearing existing collections...');
+    console.log('Setting up collections and indexes...');
     await db.collection('GameWord').deleteMany({});
     await db.collection('GameLetter').deleteMany({});
     await db.collection('QRChallenge').deleteMany({});
+    
+    // Add uniqueness constraint for participant IDs
+    await db.collection('Participant').createIndex({ publicId: 1 }, { unique: true });
     
     console.log('Inserting game words...');
     const wordDocs = CODE_WORDS.map((w, i) => ({

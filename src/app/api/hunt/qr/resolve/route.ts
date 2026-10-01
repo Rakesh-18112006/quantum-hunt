@@ -4,11 +4,6 @@ import { getSession } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
     const { token } = await request.json();
     if (!token) {
@@ -16,12 +11,27 @@ export async function POST(request: Request) {
     }
 
     const db = await getDb();
-
+    
     // Find the challenge by QR token
     const challenge = await db.collection('QRChallenge').findOne({ publicToken: token, active: true });
     
     if (!challenge) {
       return NextResponse.json({ error: 'Unknown Quantum Signal' }, { status: 404 });
+    }
+
+    const session = await getSession();
+    if (!session) {
+      // Log anonymous scan
+      await db.collection('HuntEvent').insertOne({
+        participantId: null,
+        publicId: null,
+        eventType: 'QR_SCANNED_ANONYMOUS',
+        challengeId: challenge._id,
+        metadata: JSON.stringify({ token }),
+        createdAt: new Date(),
+        environment: process.env.NODE_ENV
+      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if participant already solved this challenge

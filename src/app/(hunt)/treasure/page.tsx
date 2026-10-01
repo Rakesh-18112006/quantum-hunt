@@ -37,7 +37,13 @@ export default function TreasureHunt() {
       } else {
         if (res.status === 401) {
           // Need to login, handle redirect or show login
-          window.location.href = '/login';
+          const url = new URL(window.location.href);
+          const token = url.searchParams.get('token');
+          if (token) {
+            window.location.href = `/login?token=${token}`;
+          } else {
+            window.location.href = '/login';
+          }
         }
       }
     } catch (err) {
@@ -49,6 +55,15 @@ export default function TreasureHunt() {
 
   useEffect(() => {
     fetchProgress();
+
+    // Auto-resolve QR token if present in URL (e.g. from native camera scan)
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('token');
+    if (token) {
+      handleScanSuccess(token);
+      // Clean up URL so it doesn't re-trigger on refresh
+      window.history.replaceState({}, '', '/treasure');
+    }
   }, []);
 
   const handleScanSuccess = async (token: string) => {

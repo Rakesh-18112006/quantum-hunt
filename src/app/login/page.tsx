@@ -4,36 +4,53 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Login() {
-  const [name, setName] = useState('');
   const [publicId, setPublicId] = useState('');
-  const [isLogin, setIsLogin] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleRegister = async () => {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert(`Welcome! Your unique ID is: ${data.publicId}\n\nSAVE THIS ID! You will need it to resume if you accidentally close the game.`);
-      router.push('/treasure');
+  const getRedirectUrl = () => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const token = url.searchParams.get('token');
+      if (token) return `/treasure?token=${token}`;
     }
+    return '/treasure';
   };
 
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
+    if (!publicId) return;
+    setLoading(true);
+    
+    // First try to login
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ publicId })
     });
     const data = await res.json();
+    
     if (data.success) {
-      alert(`Welcome back, ${data.name}! Resuming your session...`);
-      router.push('/treasure');
+      alert(`Welcome back! Resuming your session...`);
+      router.push(getRedirectUrl());
+    } else if (res.status === 404) {
+      // If it doesn't exist, we register them
+      const regRes = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId })
+      });
+      const regData = await regRes.json();
+      
+      if (regData.success) {
+        alert(`Welcome! Your Qiskit-Id has been registered successfully.`);
+        router.push(getRedirectUrl());
+      } else {
+        alert(regData.error || 'Failed to register ID.');
+        setLoading(false);
+      }
     } else {
       alert(data.error || 'Invalid ID.');
+      setLoading(false);
     }
   };
 
@@ -43,46 +60,33 @@ export default function Login() {
       
       <div style={{ border: '1px solid #333', padding: '2rem', width: '320px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #333', paddingBottom: '1rem' }}>
-          <button onClick={() => setIsLogin(false)} style={{ flex: 1, padding: '0.5rem', background: !isLogin ? '#333' : 'transparent', color: 'white', border: 'none', cursor: 'pointer' }}>NEW</button>
-          <button onClick={() => setIsLogin(true)} style={{ flex: 1, padding: '0.5rem', background: isLogin ? '#333' : 'transparent', color: 'white', border: 'none', cursor: 'pointer' }}>RESUME</button>
-        </div>
-
-        {!isLogin ? (
-          <>
-            <p style={{ fontSize: '0.8rem', color: '#aaa' }}>Enter your designation (Name/Roll No) to begin a new observation:</p>
-            <input 
-              type="text" 
-              value={name} 
-              onChange={e => setName(e.target.value)} 
-              style={{ padding: '0.5rem', background: '#111', border: '1px solid #444', color: 'white' }}
-              placeholder="e.g. Alice / N210001"
-            />
-            <button 
-              onClick={handleRegister}
-              style={{ background: '#22d3ee', color: 'black', padding: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 'bold', marginTop: '0.5rem' }}
-            >
-              INITIALIZE NEW SESSION
-            </button>
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: '0.8rem', color: '#aaa' }}>Enter your unique ID (e.g., QH-123456) to resume your previous state:</p>
-            <input 
-              type="text" 
-              value={publicId} 
-              onChange={e => setPublicId(e.target.value)} 
-              style={{ padding: '0.5rem', background: '#111', border: '1px solid #444', color: 'white' }}
-              placeholder="QH-XXXXXX"
-            />
-            <button 
-              onClick={handleLogin}
-              style={{ background: '#22d3ee', color: 'black', padding: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 'bold', marginTop: '0.5rem' }}
-            >
-              RESUME SESSION
-            </button>
-          </>
-        )}
+        <p style={{ fontSize: '0.8rem', color: '#aaa', textAlign: 'center', lineHeight: '1.4' }}>
+          Enter your Qiskit-Id to begin or resume your observation.
+        </p>
+        
+        <input 
+          type="text" 
+          value={publicId} 
+          onChange={e => setPublicId(e.target.value.toUpperCase())} 
+          style={{ padding: '0.5rem', background: '#111', border: '1px solid #444', color: 'white', textAlign: 'center', marginTop: '0.5rem' }}
+          placeholder="QSK2026..."
+        />
+        
+        <button 
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ 
+            background: loading ? '#555' : '#22d3ee', 
+            color: loading ? '#ccc' : 'black', 
+            padding: '0.5rem', 
+            border: 'none', 
+            cursor: loading ? 'not-allowed' : 'pointer', 
+            fontWeight: 'bold', 
+            marginTop: '0.5rem' 
+          }}
+        >
+          {loading ? 'AUTHENTICATING...' : 'INITIALIZE SESSION'}
+        </button>
       </div>
     </div>
   );

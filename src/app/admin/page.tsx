@@ -34,8 +34,8 @@ export default function AdminDashboard() {
 
   const downloadQR = async (qr: any) => {
     try {
-      // The content of the QR will be the scan URL with the token
-      const qrData = `${window.location.origin}/treasure?token=${qr.token}`;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const qrData = `${baseUrl}/treasure?token=${qr.token}`;
       
       const dataUrl = await QRCode.toDataURL(qrData, {
         width: 1024,
@@ -94,7 +94,8 @@ export default function AdminDashboard() {
           label = `DUMMY_${String(dummyCounter++).padStart(2, '0')}`;
         }
 
-        const qrData = `${window.location.origin}/treasure?token=${qr.token}`;
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const qrData = `${baseUrl}/treasure?token=${qr.token}`;
         const dataUrl = await QRCode.toDataURL(qrData, {
           width: 512,
           margin: 1,
